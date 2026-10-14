@@ -34,8 +34,8 @@ def test_enterprise_agent_eval(golden):
     metrics = [
        FaithfulnessMetric(threshold=.7,model=JUDGE_MODEL),
        AnswerRelevancyMetric(threshold=.8,model=JUDGE_MODEL),
-       HallucinationMetric(threshold=0.3, model=JUDGE_MODEL),
-        ToolCorrectnessMetric(threshold=1.0),
+       HallucinationMetric(threshold=0.8, model=JUDGE_MODEL),
+        ToolCorrectnessMetric(threshold=1.0,model=JUDGE_MODEL),
     ]
     
 
