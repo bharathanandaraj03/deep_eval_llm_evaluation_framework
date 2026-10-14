@@ -1,0 +1,7 @@
+[
+  {
+    "input": "What are the rules regarding remote work?",
+    "expected_output": "Employees can work remotely up to 2 days a week with manager approval.",
+    "context": ["Company Policy: Employees are allowed up to 2 days of remote work per week with manager approval."]
+  }
+]
