@@ -20,6 +20,9 @@ Regression tests for LLM agents, built on [DeepEval](https://github.com/confiden
 | `tests/test_agent.py` | Parametrized DeepEval test with the quality gates. |
 | `.github/workflows/deepevaltests.yaml` | CI pipeline. |
 | `requirements.txt` | Pinned dependencies. |
+- Add rows for `app/chatbot/`, `data/policies/`, `datasets/chatbot_goldens.json`, `datasets/conversations.json` and `tests/chatbot/` to the **Project layout** table.
+- Add `uvicorn app.chatbot.api:app --reload` and `pytest tests/chatbot/unit -q` to **Run locally**.
+- Add `ANTHROPIC_API_KEY` to the **CI** secrets line.
 
 ## Quality gates
 
