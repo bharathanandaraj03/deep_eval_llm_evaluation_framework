@@ -1,0 +1,12 @@
+[
+  {"input": "Can I work from home?", "expected_output": "After the 90-day probation, employees may work remotely up to 2 days per week with manager approval."},
+  {"input": "Is there a stipend for my home office?", "expected_output": "Yes, a one-time home office stipend of $300."},
+  {"input": "Can I carry unused annual leave into next year?", "expected_output": "Up to 5 unused annual leave days carry over; the rest are forfeited."},
+  {"input": "When do I need a doctor's note for sick leave?", "expected_output": "A doctor's note is required for sick absences longer than 3 consecutive days."},
+  {"input": "How much parental leave does a primary caregiver get?", "expected_output": "Primary caregivers get 16 weeks of paid parental leave."},
+  {"input": "How long do I have to submit an expense claim?", "expected_output": "Within 30 days of purchase, with itemised receipts for items over $25."},
+  {"input": "What is the hotel limit on business trips?", "expected_output": "$200 per night."},
+  {"input": "Is multi-factor authentication required?", "expected_output": "Yes, MFA is mandatory for all company systems."},
+  {"input": "How is overtime paid?", "expected_output": "Approved overtime is paid at 1.5 times the hourly rate for non-exempt employees."},
+  {"input": "Can I accept a $80 gift from a vendor?", "expected_output": "Gifts over $50 must be declared to the compliance team."}
+]

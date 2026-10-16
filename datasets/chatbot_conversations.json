@@ -1,0 +1,41 @@
+[
+  {
+    "name": "remote-work-new-joiner",
+    "scenario": "A new employee who joined last month asks about working from home.",
+    "expected_outcome": "The bot explains the 90-day probation, the 2-days-per-week limit after it, and the VPN requirement.",
+    "user_turns": [
+      "I joined the company last month. Can I work from home?",
+      "Once I'm eligible, how many days a week can I do it?",
+      "Do I need anything special set up on those days?"
+    ]
+  },
+  {
+    "name": "leave-carry-over",
+    "scenario": "An employee asks what happens to unused annual leave.",
+    "expected_outcome": "The bot explains that up to 5 days carry over and anything beyond that is forfeited.",
+    "user_turns": [
+      "I have 3 unused annual leave days. Will I lose them at year end?",
+      "What if I had 8 unused days instead?"
+    ]
+  },
+  {
+    "name": "business-trip",
+    "scenario": "An employee plans a 4-hour flight to visit a client.",
+    "expected_outcome": "The bot confirms economy class, the $200 hotel limit, the $60 meal allowance and the 30-day claim deadline.",
+    "user_turns": [
+      "I'm flying 4 hours to visit a client next week. Can I book business class?",
+      "What's the hotel limit?",
+      "How long do I have to submit my receipts afterwards?"
+    ]
+  },
+  {
+    "name": "sick-leave-name-recall",
+    "scenario": "Priya tells the bot her name and that she will be off sick for 5 days.",
+    "expected_outcome": "The bot tells Priya a doctor's note is required because 5 days is more than 3, and remembers her absence length.",
+    "user_turns": [
+      "Hi, I'm Priya. I'll be off sick for 5 days starting tomorrow.",
+      "Do I need anything from my doctor?",
+      "Remind me, how long did I say I'd be off?"
+    ]
+  }
+]
