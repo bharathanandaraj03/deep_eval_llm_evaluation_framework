@@ -33,3 +33,9 @@ jobs:
         run: deepeval test run tests/test_agent.py
       - name: Chatbot evals
         run: deepeval test run tests/chatbot/eval -n 4
+      - name: Upload eval report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: reports/eval_report.html

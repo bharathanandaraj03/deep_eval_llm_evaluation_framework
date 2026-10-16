@@ -8,6 +8,7 @@ TurnFaithfulnessMetric,KnowledgeRetentionMetric,RoleAdherenceMetric,Conversation
 )
 from tests.chatbot.eval.conftest import DATASETS,JUDGE_MODEL,THRESHOLDS,CHATBOT_ROLE
 from app.chatbot.bot import chat
+from tests.chatbot.reporting import evaluate_and_record
 
 CONVERSATIONS = json.loads((DATASETS/"chatbot_conversations.json").read_text())
 
@@ -42,4 +43,4 @@ def test_rag_multiturn_answer_quality(convo):
         ConversationCompletenessMetric(threshold=THRESHOLDS["conversation_completeness"],model=JUDGE_MODEL),
     ]
 
-    assert_test(test_case,metrics)
+    evaluate_and_record(test_case,metrics)
