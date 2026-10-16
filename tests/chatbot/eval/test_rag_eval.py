@@ -9,6 +9,7 @@ from deepeval.metrics import (AnswerRelevancyMetric,
 from deepeval.test_case import LLMTestCase
 from app.chatbot.bot import chat
 from tests.chatbot.eval.conftest import DATASETS,JUDGE_MODEL,THRESHOLDS
+from tests.chatbot.reporting import evaluate_and_record
 
 GOLDENS = json.loads((DATASETS/"chatbot_goldens.json").read_text())
 
@@ -30,5 +31,5 @@ def test_rag_answer_quality(golden):
         FaithfulnessMetric(threshold=THRESHOLDS["faithfulness"],model= JUDGE_MODEL),
         AnswerRelevancyMetric(threshold=THRESHOLDS["answer_relevancy"],model=JUDGE_MODEL)
     ]
-
-    assert_test(test_case,metrics)
+    
+    evaluate_and_record(test_case,metrics)
