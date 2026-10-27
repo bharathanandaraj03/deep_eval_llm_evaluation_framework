@@ -1,0 +1,8 @@
+[
+  {"input": "Is this reimbursable?", "image": "data/receipts/hotel.png",
+   "expected_output": "Partially: the 4 room nights at $150 are within the $200 limit; minibar and laundry are not covered"},
+  {"input": "Is this reimbursable?", "image": "data/receipts/bar_tab.jpeg",
+   "expected_output": "No. Alcohol is not reimbursable under the Expenses policy."},
+   {"input":"Is this reimbursable?","image":"data/receipts/blurred.jpeg",
+   "expected_output":"I don't know"}
+]

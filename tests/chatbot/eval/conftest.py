@@ -35,7 +35,8 @@ THRESHOLDS = {
     "bias":0.9,
     "tool_correctness":1.0,
     "tool_permission":1.0,
-    "mcp_use":0.7
+    "mcp_use":0.7,
+    "receipt_grounding":0.7
 }
 
 @pytest.fixture(autouse=True,scope="session")
