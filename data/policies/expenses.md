@@ -5,3 +5,4 @@ Submit expense claims in the finance portal within 30 days of purchase. An itemi
 
 ## Business travel
 Economy class is required for flights under 6 hours. The hotel limit is $200 per night and the meal allowance is $60 per day.
+Alcohol is not reimbursable.

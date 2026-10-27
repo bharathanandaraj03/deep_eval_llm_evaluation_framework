@@ -3,6 +3,8 @@ from datetime import datetime
 from pathlib import Path
 from jinja2 import Template
 from deepeval.test_case import ConversationalTestCase
+from deepeval.test_case.llm_test_case import _MLLM_IMAGE_REGISTRY
+import re
 
 RESULTS_DIR = Path(os.getenv("EVAL_RESULTS_DIR", "reports/eval_results"))
 REPORT_PATH = Path(os.getenv("EVAL_REPORT_PATH", "reports/eval_report.html"))
@@ -27,6 +29,9 @@ def evaluate_and_record(test_case, metrics):
     record = {"test_id": os.environ.get("PYTEST_CURRENT_TEST", "").rsplit(" ", 1)[0],
               "input": inp, "output": out, "expected": expected,
               "metrics": rows, "passed": all(r["success"] for r in rows)}
+    ids = re.findall(r"\[DEEPEVAL:IMAGE:(.*?)\]", inp or "")
+    record["images"] = [f"data:{_MLLM_IMAGE_REGISTRY[i].mimeType};base64,{_MLLM_IMAGE_REGISTRY[i].dataBase64}" for i in ids]
+
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     (RESULTS_DIR / f"{uuid.uuid4().hex}.json").write_text(json.dumps(record, default=str))
     failed = [r for r in rows if not r["success"]]
@@ -68,6 +73,7 @@ table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:6p
 <details class="case {{ '' if r.passed else 'fail' }}" {{ '' if r.passed else 'open' }}>
 <summary>{{ 'PASS' if r.passed else 'FAIL' }} · {{ r.test_id }}</summary>
 <h4>Input</h4><pre>{{ r.input }}</pre>
+{% for src in r.images or [] %}<img src="{{ src }}" style="max-width:240px">{% endfor %}
 <h4>Output</h4><pre>{{ r.output }}</pre>
 {% if r.expected %}<h4>Expected</h4><pre>{{ r.expected }}</pre>{% endif %}
 <table><tr><th>Metric</th><th>Score</th><th>Threshold</th><th>Result</th><th>Reason</th></tr>

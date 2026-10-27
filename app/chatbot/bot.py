@@ -6,6 +6,8 @@ from app.chatbot.retriever import Retriever, load_sections
 UNKNOWN_REPLY = "I don't know. Please contact HR at hr@acme.example."
 DECLINE_REPLY = "I can't help with that request. Please contact HR at hr@acme.example."
 
+CAPTION_PROMPT = "Describe this receipt in one line: vendor, expense category, line items, total."
+
 SYSTEM_PROMPT = f"""You are the HR policy assistant for Acme Corp employees.
 
 Answer only from the policy sections inside the <policies> tags of the latest user message. Name the policy you used. Keep answers under 120 words.
@@ -37,16 +39,33 @@ def _search_query(history: list[dict], message: str) -> str:
     previous = [m["content"] for m in history if m["role"] == "user"][-1:]
     return " ".join([*previous, message])
 
+def _image_blocks(images) -> list[dict]:
+    return [{"type": "image","source":{"type": "base64","media_type":img.mimeType,"data":img.dataBase64}}
+            for img in images or []]
 
-def chat(history: list[dict], message: str, client=None, retriever=None) -> dict:
+
+def _caption(client, images) -> str:
+    if not images:
+        return ""
+    response = client.messages.create(
+        model=config.MODEL,
+        max_tokens = 200,
+        messages = [{"role":"user","content":[*_image_blocks(images),{"type":"text","text": CAPTION_PROMPT}]}]
+    )
+    return "".join(b.text for b in response.content if b.type =="text")
+
+def chat(history: list[dict], message: str, client=None, retriever=None, images=None) -> dict:
     client = client or _get_client()
     retriever = retriever or _get_retriever()
 
-    sections = retriever.search(_search_query(history, message), k=config.TOP_K)
+    query = f"{_search_query(history, message)} {_caption(client, images)}"
+    sections = retriever.search(query, k=config.TOP_K)
+    #sections = retriever.search(_search_query(history, message), k=config.TOP_K)
     policies = "\n\n".join(
         f'<policy source="{s.source}">\n{s.text}\n</policy>' for s in sections
     )
-    user_content = f"<policies>\n{policies}\n</policies>\n\nQuestion: {message}"
+    user_content = [*_image_blocks(images),
+                    {"type": "text", "text": f"<policies>\n{policies}\n</policies>\n\nQuestion: {message}"}]
 
     response = client.beta.messages.create(
         model=config.MODEL,

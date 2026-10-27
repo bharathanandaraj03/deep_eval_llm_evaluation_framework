@@ -7,7 +7,7 @@ Three suites are under test:
 | Suite | App | Tests |
 |---|---|---|
 | Agent | `app/agent.py`: tool-calling enterprise agent | `tests/test_agent.py` |
-| HR chatbot | `app/chatbot/`: RAG (retrieval-augmented generation) assistant that answers from `data/policies/*.md` using Claude | `tests/chatbot/eval/` (LLM evals), `tests/chatbot/unit/` (no LLM calls) |
+| HR chatbot | `app/chatbot/`: RAG (retrieval-augmented generation) assistant that answers from `data/policies/*.md` using Claude, including questions about uploaded receipt images | `tests/chatbot/eval/` (LLM evals), `tests/chatbot/unit/` (no LLM calls) |
 | MCP server | `app/mcp_server/`: HR server built on the Model Context Protocol (MCP), with policy and leave tools, plus a Claude agent that calls them | `tests/mcp/eval/` (LLM evals), `tests/mcp/unit/` (no LLM calls) |
 
 ## How it works
@@ -24,6 +24,10 @@ Three suites are under test:
 
 ![Sample eval report](assets/eval-report.png)
 
+Multimodal cases show the input image above the output, so you can check what the judge saw:
+
+![Sample multimodal eval report](assets/multimodal-eval-report.png)
+
 ## Project layout
 
 | Path | Purpose |
@@ -35,6 +39,8 @@ Three suites are under test:
 | `datasets/goldens.json` | Agent golden cases. |
 | `datasets/chatbot_goldens.json` | Single-turn chatbot goldens. |
 | `datasets/chatbot_conversations.json` | Multi-turn chatbot scenarios. |
+| `datasets/multimodal_goldens.json` | Image goldens: question, image path, expected answer. |
+| `data/receipts/` | Receipt images used by the multimodal eval. |
 | `datasets/mcp_goldens.json` | MCP agent goldens with expected tool calls. |
 | `tests/test_agent.py` | Agent eval. |
 | `tests/chatbot/eval/` | Chatbot evals: RAG quality, multi-turn quality, safety and scope. `conftest.py` holds the judge model and thresholds. |
@@ -54,11 +60,14 @@ All scores range from 0 to 1, and higher is better. A metric passes when its sco
 | Chatbot RAG (`test_rag_eval.py`) | `gpt-4.1` | Contextual Precision (0.7), Contextual Recall (0.7), Contextual Relevancy (0.7), Faithfulness (0.8), Answer Relevancy (0.8) |
 | Chatbot multi-turn (`test_rag_multiturn_eval.py`) | `gpt-4.1` | Turn Faithfulness (0.7), Turn Contextual Relevancy (0.7), Knowledge Retention (0.8), Role Adherence (0.8), Conversation Completeness (0.7) |
 | Chatbot safety and scope (`test_rag_safety_scope_eval.py`) | `gpt-4.1` | Toxicity (0.9), Bias (0.9), PII Leakage (0.9, GEval), Role Violation (0.7, GEval), Scope Refusal (0.7, GEval; out-of-scope cases only) |
+| Chatbot multimodal (`test_multimodal_eval.py`) | `gpt-4.1` | Answer Relevancy (0.8), Faithfulness (0.8), Receipt Grounding (0.7, GEval: reads vendor, amount and category from the image and applies the matching policy) |
 | MCP agent (`test_mcp_agent_eval.py`) | `gpt-4.1` | Tool Correctness (1.0, deterministic; calling any tool when none is expected scores 0), MCP Use (0.7) |
 
 The judge models are pinned so that scores don't drift when DeepEval changes its default judge. Chatbot and MCP thresholds and the judge are set in `tests/chatbot/eval/conftest.py`.
 
 PII Leakage and Role Violation use GEval rubrics instead of DeepEval's built-in metrics. The built-in metrics flagged the HR mailbox as PII, and flagged declining to reveal the system prompt as a role violation.
+
+Multimodal cases embed the image in the test input as an `MLLMImage` inside an f-string (`f"{image}\n{question}"`). DeepEval then marks the case as multimodal and sends the image to the judge. Before retrieval, the bot captions the image, so a question like "Is this reimbursable?" still finds the right policy section.
 
 ## Golden format
 
@@ -81,6 +90,16 @@ Chatbot conversation (`datasets/chatbot_conversations.json`):
   "scenario": "An employee asks what happens to unused annual leave.",
   "expected_outcome": "The bot explains that up to 5 days carry over and anything beyond that is forfeited.",
   "user_turns": ["I have 3 unused annual leave days. Will I lose them at year end?", "What if I had 8 unused days instead?"]
+}
+```
+
+Multimodal (`datasets/multimodal_goldens.json`). The image file extension must match its real format, because the media type sent to Claude is taken from the extension:
+
+```json
+{
+  "input": "Is this reimbursable?",
+  "image": "data/receipts/hotel.png",
+  "expected_output": "Partially: the 4 room nights at $150 are within the $200 limit; minibar and laundry are not covered"
 }
 ```
 
@@ -107,6 +126,7 @@ $env:PYTHONUTF8 = 1                     # Windows only: avoids UnicodeEncodeErro
 
 pytest tests/chatbot/unit -q                       # unit tests, no LLM calls
 python -m pytest tests/chatbot/eval -n 4           # chatbot evals and HTML report
+python -m pytest tests/chatbot/eval/test_multimodal_eval.py -v   # multimodal (image) evals only
 deepeval test run tests/test_agent.py              # agent eval
 uvicorn app.chatbot.api:app --reload               # run the chatbot API (POST /chat)
 python -m pytest tests/mcp/unit -v                 # MCP contract tests, no LLM calls
@@ -140,3 +160,4 @@ Before the first run, add `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` under **Setti
 | Coverage | Add `TaskCompletionMetric` for the agent |
 | Safety | Add `deepteam` red teaming |
 | Ops | Generate synthetic goldens with `Synthesizer`, track results over time on Confident AI, and run a quick suite on each PR with the full suite nightly |
+| Multimodal | Add video by sampling frames into `MLLMImage`s, with a temporal-accuracy GEval rubric |

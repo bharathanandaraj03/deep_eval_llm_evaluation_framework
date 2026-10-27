@@ -38,7 +38,7 @@ def test_chat_sends_policies_history_and_fallbacks():
     assert kwargs["fallbacks"] == "default"
     assert "server-side-fallback-2026-07-01" in kwargs["betas"]
     assert kwargs["messages"][:2] == history
-    assert "<policies>" in kwargs["messages"][-1]["content"]
+    assert "<policies>" in kwargs["messages"][-1]["content"][-1]["text"]
 
 
 def test_chat_with_no_matching_policy_still_calls_claude():
