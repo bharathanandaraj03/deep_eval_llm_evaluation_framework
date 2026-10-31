@@ -54,7 +54,8 @@ def _caption(client, images) -> str:
     )
     return "".join(b.text for b in response.content if b.type =="text")
 
-def chat(history: list[dict], message: str, client=None, retriever=None, images=None) -> dict:
+def chat(history: list[dict], message: str, client=None, retriever=None, images=None,
+         system_prompt: str = SYSTEM_PROMPT) -> dict:
     client = client or _get_client()
     retriever = retriever or _get_retriever()
 
@@ -70,7 +71,7 @@ def chat(history: list[dict], message: str, client=None, retriever=None, images=
     response = client.beta.messages.create(
         model=config.MODEL,
         max_tokens=config.MAX_TOKENS,
-        system=SYSTEM_PROMPT,
+        system=system_prompt,
         cache_control={"type": "ephemeral"},
         output_config={"effort": config.EFFORT},
         betas=["server-side-fallback-2026-07-01"],

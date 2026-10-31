@@ -2,13 +2,14 @@
 
 Regression tests for LLM applications, built on [DeepEval](https://github.com/confident-ai/deepeval). Each test runs the app on a golden input and scores the output with LLM-as-judge and deterministic metrics. CI fails when any score is below its threshold.
 
-Three suites are under test:
+Four suites are under test:
 
 | Suite | App | Tests |
 |---|---|---|
 | Agent | `app/agent.py`: tool-calling enterprise agent | `tests/test_agent.py` |
 | HR chatbot | `app/chatbot/`: RAG (retrieval-augmented generation) assistant that answers from `data/policies/*.md` using Claude, including questions about uploaded receipt images | `tests/chatbot/eval/` (LLM evals), `tests/chatbot/unit/` (no LLM calls) |
 | MCP server | `app/mcp_server/`: HR server built on the Model Context Protocol (MCP), with policy and leave tools, plus a Claude agent that calls them | `tests/mcp/eval/` (LLM evals), `tests/mcp/unit/` (no LLM calls) |
+| Voice agent | `app/voice/`: the HR chatbot behind a voice pipeline. OpenAI speech-to-text (STT) transcribes the caller, Claude answers with a voice-specific prompt, and OpenAI text-to-speech (TTS) speaks the reply | `tests/chatbot/eval/voice/` (LLM and audio evals) |
 
 ## How it works
 
@@ -35,6 +36,7 @@ Multimodal cases show the input image above the output, so you can check what th
 | `app/agent.py`, `app/tools.py` | Agent under test and its tools. `@observe(type="tool")` records each call in DeepEval's trace. |
 | `app/chatbot/` | HR chatbot: `bot.py` (Claude call), `retriever.py` (BM25 policy search), `api.py` (FastAPI `/chat` endpoint), `config.py` (env-driven settings). |
 | `app/mcp_server/` | MCP server: `server.py` (5 tools: `list_policies`, `read_policy`, `get_leave_balance`, `submit_leave_request`, `cancel_leave_request`, with leave data held in memory), `agent.py` (Claude tool-use loop over the MCP client), `client_demo.py` (lists and calls tools over stdio). |
+| `app/voice/` | Voice agent: `agent.py` (`voice_turn`: STT, then `chat()` with `VOICE_SYSTEM_PROMPT`, then TTS, timing each stage), `audio.py` (`add_noise` at a set signal-to-noise ratio), `config.py` (STT and TTS models and voice, set by env vars). |
 | `data/policies/` | Policy documents the chatbot retrieves from. |
 | `datasets/goldens.json` | Agent golden cases. |
 | `datasets/chatbot_goldens.json` | Single-turn chatbot goldens. |
@@ -44,6 +46,7 @@ Multimodal cases show the input image above the output, so you can check what th
 | `datasets/mcp_goldens.json` | MCP agent goldens with expected tool calls. |
 | `tests/test_agent.py` | Agent eval. |
 | `tests/chatbot/eval/` | Chatbot evals: RAG quality, multi-turn quality, safety and scope. `conftest.py` holds the judge model and thresholds. |
+| `tests/chatbot/eval/voice/` | Voice evals (`test_voice_eval.py`) and `metrics.py`, which holds `WERMetric`: a deterministic word error rate (WER) metric that is reported next to the LLM metrics. |
 | `tests/chatbot/unit/` | API, bot and retriever unit tests. These make no LLM calls. |
 | `tests/mcp/unit/` | MCP contract tests: tool list, input and output schemas, safety annotations, errors, and leave side effects. They run against the server in-process and make no LLM calls. |
 | `tests/mcp/eval/` | MCP agent evals. They start the server over stdio, run the agent, and score its tool use. |
@@ -57,13 +60,19 @@ All scores range from 0 to 1, and higher is better. A metric passes when its sco
 | Suite | Judge | Metrics (threshold) |
 |---|---|---|
 | Agent (`tests/test_agent.py`) | `gpt-4.1` | Faithfulness (0.7), Answer Relevancy (0.8), Hallucination (0.8), Tool Correctness (1.0) |
-| Chatbot RAG (`test_rag_eval.py`) | `gpt-4.1` | Contextual Precision (0.7), Contextual Recall (0.7), Contextual Relevancy (0.7), Faithfulness (0.8), Answer Relevancy (0.8) |
-| Chatbot multi-turn (`test_rag_multiturn_eval.py`) | `gpt-4.1` | Turn Faithfulness (0.7), Turn Contextual Relevancy (0.7), Knowledge Retention (0.8), Role Adherence (0.8), Conversation Completeness (0.7) |
-| Chatbot safety and scope (`test_rag_safety_scope_eval.py`) | `gpt-4.1` | Toxicity (0.9), Bias (0.9), PII Leakage (0.9, GEval), Role Violation (0.7, GEval), Scope Refusal (0.7, GEval; out-of-scope cases only) |
-| Chatbot multimodal (`test_multimodal_eval.py`) | `gpt-4.1` | Answer Relevancy (0.8), Faithfulness (0.8), Receipt Grounding (0.7, GEval: reads vendor, amount and category from the image and applies the matching policy) |
-| MCP agent (`test_mcp_agent_eval.py`) | `gpt-4.1` | Tool Correctness (1.0, deterministic; calling any tool when none is expected scores 0), MCP Use (0.7) |
+| Chatbot RAG (`test_rag_eval.py`) | `claude-sonnet-5-5` | Contextual Precision (0.7), Contextual Recall (0.7), Contextual Relevancy (0.7), Faithfulness (0.8), Answer Relevancy (0.8) |
+| Chatbot multi-turn (`test_rag_multiturn_eval.py`) | `claude-sonnet-5-5` | Turn Faithfulness (0.7), Turn Contextual Relevancy (0.7), Knowledge Retention (0.8), Role Adherence (0.8), Conversation Completeness (0.7) |
+| Chatbot safety and scope (`test_rag_safety_scope_eval.py`) | `claude-sonnet-5-5` | Toxicity (0.9), Bias (0.9), PII Leakage (0.9, GEval), Role Violation (0.7, GEval), Scope Refusal (0.7, GEval; out-of-scope cases only) |
+| Chatbot multimodal (`test_multimodal_eval.py`) | `claude-sonnet-5-5` | Answer Relevancy (0.8), Faithfulness (0.8), Receipt Grounding (0.7, GEval: reads vendor, amount and category from the image and applies the matching policy) |
+| MCP agent (`test_mcp_agent_eval.py`) | `claude-sonnet-5-5` | Tool Correctness (1.0, deterministic; calling any tool when none is expected scores 0), MCP Use (0.7) |
+| Voice ASR (`test_asr_accuracy`) | none (deterministic) | ASR WER (word error rate, at most 10% on clean audio, 15% at 20 dB SNR, 25% at 10 dB SNR) |
+| Voice answer (`test_voice_answer_quality`) | `claude-sonnet-5-5` | Answer Relevancy (0.8), Faithfulness (0.8), Spoken Response Quality (0.7, GEval: under 3 sentences, no markdown, bullets, URLs, file names or tables, answers only what was asked) |
+| Voice TTS (`test_tts_intelligibility`) | none (deterministic) | TTS round-trip WER (at most 10%): the reply audio is transcribed again and compared with the reply text |
+| Voice latency (`test_turn_latency`) | none | Total turn time (STT + LLM + TTS) at most 6 s |
 
-The judge models are pinned so that scores don't drift when DeepEval changes its default judge. Chatbot and MCP thresholds and the judge are set in `tests/chatbot/eval/conftest.py`.
+The judge models are pinned so that scores don't drift when DeepEval changes its default judge. Chatbot, MCP and voice thresholds and the judge are set in `tests/chatbot/eval/conftest.py`. To use a cheaper judge for smoke runs, set the `JUDGE_MODEL` env var, for example `claude-haiku-5-5`.
+
+The voice suite has no dataset of its own. It synthesizes the first 5 questions in `datasets/chatbot_goldens.json` with TTS, so the question text is an exact reference transcript, and adds Gaussian noise for the 20 dB and 10 dB SNR cases. SNR is the signal-to-noise ratio: lower means noisier. Voice replies use `VOICE_SYSTEM_PROMPT` (`app/voice/agent.py`), which adds spoken-style rules to the chatbot prompt. The text chatbot is unchanged.
 
 PII Leakage and Role Violation use GEval rubrics instead of DeepEval's built-in metrics. The built-in metrics flagged the HR mailbox as PII, and flagged declining to reveal the system prompt as a role violation.
 
@@ -120,8 +129,8 @@ To add a test case, append an object to the matching dataset. You don't need to 
 ```powershell
 pip install -r requirements.txt
 # Add both keys to .env (gitignored) or set them in the shell:
-$env:ANTHROPIC_API_KEY = "<your-key>"   # chatbot and MCP agent
-$env:OPENAI_API_KEY = "<your-key>"      # judge for all suites
+$env:ANTHROPIC_API_KEY = "<your-key>"   # chatbot, MCP agent and judge for chatbot, MCP and voice evals
+$env:OPENAI_API_KEY = "<your-key>"      # agent judge, and voice STT and TTS
 $env:PYTHONUTF8 = 1                     # Windows only: avoids UnicodeEncodeError in DeepEval's console output
 
 pytest tests/chatbot/unit -q                       # unit tests, no LLM calls
@@ -133,11 +142,18 @@ python -m pytest tests/mcp/unit -v                 # MCP contract tests, no LLM 
 python -m pytest tests/mcp/eval -v                 # MCP agent evals and HTML report
 python -m app.mcp_server.agent "<question>"        # run the MCP agent once
 mcp dev app/mcp_server/server.py                   # inspect the server in MCP Inspector (needs Node.js)
+python -m pytest tests/chatbot/eval/voice -p no:xdist   # voice evals (30 tests)
+
+# Cheap voice smoke run: 1 golden, clean audio, Haiku as chatbot and judge (4 tests, about 30 s)
+$env:CHATBOT_MODEL = "claude-haiku-5-5"; $env:JUDGE_MODEL = "claude-haiku-5-5"
+python -m pytest tests/chatbot/eval/voice -p no:xdist -k "work and (clean or not asr)"
 ```
+
+Run the voice evals with `-p no:xdist` so the synthesized audio and voice turns, which are cached in memory, are reused across tests instead of being generated again in each worker.
 
 Run all chatbot and MCP eval files in one pytest session (`python -m pytest tests/chatbot/eval tests/mcp/eval`). Each session clears `reports/eval_results/` and rewrites `reports/eval_report.html`, so running the files one at a time leaves only the last file's results.
 
-A full chatbot eval run is about 100 `gpt-4.1` judge calls, plus the chatbot's own calls.
+A full chatbot eval run is about 100 Claude judge calls, plus the chatbot's own calls. The full voice suite adds about 15 judge calls and about 40 STT and TTS calls.
 
 ## CI
 
@@ -146,7 +162,7 @@ A full chatbot eval run is about 100 `gpt-4.1` judge calls, plus the chatbot's o
 | Job | Trigger | Runs |
 |---|---|---|
 | `unit` | Push and pull request to `main`/`master` | `pytest tests/chatbot/unit -q` |
-| `evaluate` | Pull request only, after `unit` passes | Agent eval, chatbot evals, then uploads `reports/eval_report.html` as the `eval-report` artifact. The artifact is uploaded even when the evals fail. |
+| `evaluate` | Pull request only, after `unit` passes | Agent eval, chatbot evals (including `tests/chatbot/eval/voice/`), then uploads `reports/eval_report.html` as the `eval-report` artifact. The artifact is uploaded even when the evals fail. |
 
 Before the first run, add `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` under **Settings → Secrets and variables → Actions**.
 
@@ -161,3 +177,4 @@ Before the first run, add `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` under **Setti
 | Safety | Add `deepteam` red teaming |
 | Ops | Generate synthetic goldens with `Synthesizer`, track results over time on Confident AI, and run a quick suite on each PR with the full suite nightly |
 | Multimodal | Add video by sampling frames into `MLLMImage`s, with a temporal-accuracy GEval rubric |
+| Voice | Stream each stage and gate on time to first audio instead of total time. Score speech naturalness with a mean opinion score (MOS) predictor such as UTMOS. Add real recordings with varied accents, and multi-turn voice conversations. |

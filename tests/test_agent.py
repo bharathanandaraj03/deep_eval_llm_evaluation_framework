@@ -30,10 +30,10 @@ def test_enterprise_agent_eval(golden):
         tools_called=[ToolCall(name=t) for t in result["tools_called"]],
         expected_tools=[ToolCall(name=t) for t in golden.get("expected_tools", [])])
 
-    #Define enterprise qality gates(thresholds)
+    #Define enterprise quality gates(thresholds)
     metrics = [
-       FaithfulnessMetric(threshold=.7,model=JUDGE_MODEL),
-       AnswerRelevancyMetric(threshold=.8,model=JUDGE_MODEL),
+       FaithfulnessMetric(threshold=0.7,model=JUDGE_MODEL),
+       AnswerRelevancyMetric(threshold=0.8,model=JUDGE_MODEL),
        HallucinationMetric(threshold=0.8, model=JUDGE_MODEL),
         ToolCorrectnessMetric(threshold=1.0,model=JUDGE_MODEL),
     ]
