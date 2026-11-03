@@ -177,4 +177,8 @@ Before the first run, add `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` under **Setti
 | Safety | Add `deepteam` red teaming |
 | Ops | Generate synthetic goldens with `Synthesizer`, track results over time on Confident AI, and run a quick suite on each PR with the full suite nightly |
 | Multimodal | Add video by sampling frames into `MLLMImage`s, with a temporal-accuracy GEval rubric |
-| Voice | Stream each stage and gate on time to first audio instead of total time. Score speech naturalness with a mean opinion score (MOS) predictor such as UTMOS. Add real recordings with varied accents, and multi-turn voice conversations. |
+| Voice: streaming latency | Stream STT partials, Claude output (`client.messages.stream`) and TTS sentence by sentence. Gate on time to first audio (at most 1.5 s), with p50 and p95 across goldens. |
+| Voice: real-world audio | Add recorded clips with transcripts (for example Common Voice) in `datasets/voice_recordings/`. Add 8 kHz phone-line resampling, reverb and babble noise to `audio.py`. Gate WER per accent and noise group, and on the largest gap between groups. |
+| Voice: multi-turn | Run `chatbot_conversations.json` through `voice_turn` with history, injecting ASR errors (for example "leaf" for "leave"). Score with Knowledge Retention and a GEval rubric for asking the caller to confirm uncertain transcripts. |
+| Voice: speech quality | Score naturalness with a mean opinion score (MOS) predictor such as UTMOS (at least 3.8), and tone match with an audio-capable judge. |
+| Voice: safety | Red team with `deepteam` attacks converted to audio. Check that the agent never reads out employee IDs or emails. Run PII Leakage and Role Violation on spoken input. |
